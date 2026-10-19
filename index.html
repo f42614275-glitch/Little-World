@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scqale=1">
+        <title>Little Planet</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <main id="game-warp">
+            <canvas id="game" aria-label="Little Planet Game"></canvas>
+
+            <section class="hud" aria-live="polite">
+                <div class="game-name">
+                    <span class="tiny-star">✦</span>
+                    <div>
+                        <p class="eyebrow">A VERY LARGE WORLD TO EXPLOREEEE</p>
+                        <h1>Little Planet</h1>
+                    </div>
+                </div>
+                <div class="objective">
+                    <span class="objective-dot"></span>
+                    <span id="objective-text">Find those twinkley thing</span>
+                </div>
+            </section>
+
+            <div class="counter"><span class="star-icon'>✦</span><span id="star-count"></span><span class="counter-label">/ 5 stars</span></div>
+
+            <div class="hint" id="hint">Move with WASD or arrow keys</div>
+
+            <section class="welcome" id="welcome">
+                <div class="welcome-card">
+                    <p class="eyebrow">SOMEWHERE OUT THERE</p>
+                    <h2>The Lost World</h2>
+                    <p>This quiet place has lost the light it had before :( . Wander through the world and bring the stars which lit this world up :)</p>
+                    <button id="start-button" type="button">Start Roaming</button>
+                    <p class="controls-note">WASD / ARROW KEYS to move. <span>•</span> Collect all 5 stars</p>
+                </div>
+            </section>
+                
+            <section class="finish hidden" id="finish">
+                <div class="finish-card">
+                    <div class="finish-star">✦</div>
+                    <p class="eyebrow">CONGRATSSSS! YOU DID ITTTTT</p>
+                    <h2>Because of you the world is glowing again</h2>
+                    <p>You found every lost star. Take a moment and enjoy the view</p>
+                    <button id="play-again" type="button">Find Them Again </button>
+                </div>
+            </section>
+        </main>
+        <script src="game.js"></script>
+    </body>    
+</html>
