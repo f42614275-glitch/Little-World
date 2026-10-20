@@ -17,7 +17,7 @@ html, body {
     height:100%;
     margin: 0;
     overflow: hidden;
-    background: #152c2d; /* game changer */
+    background: #16d5df; 
     color: var(--ink);
     font-family: "Nunito", system-ui, sans-serif;
 }
@@ -30,7 +30,7 @@ button { font: inherit; }
     height: 100%;
     min-height: 420px;
     overflow: hidden;
-    background: #243f3b;
+    background: #16d5df; /* game changer */
 }
 
 #game {
@@ -96,7 +96,8 @@ h1 {
     margin-top: 4px;
     padding: 10px 14px;
     border-radius: 999px;
-    color: #e9e9d4;
+    color: #e3e3d6;
+    background: #27352b;
     font-size: 13px;
 }
 
@@ -115,6 +116,7 @@ h1 {
     display: flex;
     align-items: baseline;
     gap: 7px;
+    background: #27352b;
     padding: 10px 14px;
     border-radius: 12px;
     font: 500 16px "DM Mono", monospace;
@@ -149,7 +151,7 @@ h1 {
     padding: 36px;
     border: 1px solid rgba(238, 237, 199 0.24);
     border-radius: 22px;
-    background: rgba(20, 42, 39, 0.91);
+    background: rgba(0, 8, 7, 0.91);
     box-shadow: 0 24px 80pox rgba(0, 0, 0, 0.26);
     backdrop-filter: blur(14px);
     text-align: left;
