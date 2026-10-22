@@ -233,7 +233,7 @@ button {
     transition: transform .16s ease, background .16s ease;
 }
 
-button.hover { background: #ffe69a; transform: translateY(-2px); }
+button:hover { background: #ffe69a; transform: translateY(-2px); }
 button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
 button span { font-size: 17px; }
 

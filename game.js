@@ -43,6 +43,7 @@ let world = [];
 let stars = [];
 let flowers = [];
 let stones = [];
+let natureParticles = [];
 let discoveries = [];
 let discoveriesFound = 0;
 
@@ -124,6 +125,20 @@ function buildWorld() {
         { x: 39 * TILE, y: 26 * TILE, found: false },
         { x: 30 * TILE, y: 25 * TILE, found: false },
     ];
+
+    //particles
+    const particleRandom = randomFrom(24681);
+    natureParticles = [];
+    
+    for (let i = 0; i < 16; i++) {
+        natureParticles.push({
+            x: particleRandom() * WORLD_W * TILE,
+            y: particleRandom() * WORLD_H * TILE,
+            phase: particleRandom() * Math.PI * 2,
+            size: particleRandom() < 0.7 ? 2 : 3,
+            leaf: particleRandom() < 0.4
+        });
+    }
 
     // discoveries
     discoveries = [
@@ -396,12 +411,37 @@ function render(time) {
     for (const flower of flowers) {
         if (flower.x < camera.x - 10 || flower.x > camera.x + viewW + 10) continue;
         if (flower.y < camera.y - 10 || flower.y > camera.y + viewH + 10) continue;
+
+        const sway = Math.sin(time * 0.002 + flower.x) * 1.5;
+
         ctx.fillStyle = "#416c4c";
         ctx.fillRect(flower.x + 2, flower.y + 3, 2, 6);
+
         ctx.fillStyle = flower.color;
-        ctx.fillRect(flower.x, flower.y + 2, 4, 4);
+        ctx.fillRect(flower.x + sway, flower.y, 5, 5);
+        ctx.fillRect(flower.x + 3 + sway, flower.y + 3, 2, 6);
+        
         ctx.fillStyle = "#f4e7b0";
-        ctx.fillRect(flower.x + 2, flower.y + 2, 2, 2);
+        ctx.fillRect(flower.x + 2 + sway, flower.y + 2, 2, 2);
+    }
+
+    for (const particle of natureParticles) {
+        const driftX = Math.sin(time * 0.0005 + particle.phase) * 5;
+        const drifty = Math.sin(time * 0.0004 + particle.phase) * 7;
+        const x = particle.x + driftX;
+        const y = particle.y + drifty;
+
+        if (x < camera.x - 10 || x > camera.x + viewW + 10) continue;
+        if (y < camera.y - 10 || y > camera.y + viewH + 10) continue;
+
+        ctx.fillStyle = particle.leaf ? "#c5d99a" : "#e6e8b5";
+
+        if (particle.leaf) {
+            ctx.fillRect(x, y, particle.size + 1, particle.size);
+            ctx.fillRect(x + 1, y - 1, particle.size, 1);
+        } else {
+            ctx.fillRect(x, y, particle.size, particle.size);
+        }
     }
 
     for (const stone of stones) {
