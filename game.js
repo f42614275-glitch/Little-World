@@ -43,6 +43,8 @@ let world = [];
 let stars = [];
 let flowers = [];
 let stones = [];
+let discoveries = [];
+let discoveriesFound = 0;
 
 function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -122,6 +124,16 @@ function buildWorld() {
         { x: 39 * TILE, y: 26 * TILE, found: false },
         { x: 30 * TILE, y: 25 * TILE, found: false },
     ];
+
+    // discoveries
+    discoveries = [
+        {
+            x: 13 * TILE + TILE / 2,
+            y: 17 * TILE + TILE / 2,
+            found: false,
+            message: "Someone planted flowers here long ago."
+        }
+    ];
 }
 
 function playBackgroundMusic() {
@@ -159,6 +171,8 @@ function resetGame () {
     player.y = 7 * TILE;
     player.walkTime = 0;
     found = 0;
+    discoveriesFound = 0;
+    discoveries.forEach(item => item.found = false);
     elapsed = 0;
     player.face = "down";
     stars.forEach(star => star.found = false);
@@ -215,6 +229,19 @@ function update(dt) {
     if (keys.has("arrowdown") || keys.has("s")) dy++;
 
     movePlayer(dx, dy, dt);
+
+    for (const item of discoveries) {
+        if (item.found) continue;
+
+        const distance = Math.hypot(
+            player.x - item.x,
+            player.y - item.y 
+        );
+
+        if (distance < 15) {
+            hint.textContent = "Press E to discover";
+        }
+    }
 
     for (const star of stars) {
         if (star.found) continue;
@@ -388,6 +415,23 @@ function render(time) {
         if (!star.found) drawStar(star.x, star.y, time / 1000);
     }
 
+    for (const item of discoveries) {
+        if (item.found) continue;
+
+        ctx.save();
+
+        ctx.shadowColor = "#c01640";
+        ctx.shadowBlur = "28";
+
+        ctx.fillStyle = "#c11a44";
+        ctx.fillRect(item.x - 5, item.y - 5, 10, 10);
+
+        ctx.fillStyle = "#efffc2";
+        ctx.fillRect(item.x - 2, item.y - 2, 4, 4);
+
+        ctx.restore();
+    }
+
       drawPlayer(time);
   ctx.restore();
 
@@ -409,6 +453,24 @@ function frame(time) {
 
 window.addEventListener("keydown", event => {
     const key = event.key.toLowerCase();
+    if (key === "e" && playing) {
+        for (const item of discoveries) {
+            if (item.found) continue;
+
+            const distance = Math.hypot(
+                player.x - item.x,
+                player.y - item.y
+            );
+
+            if (distance < 15) {
+                item.found = true;
+                discoveriesFound++;
+                hint.textContent = item.message;
+                objectiveText.textContent = "Secrets found:" + discoveriesFound;
+                break;
+            }
+        }
+    }
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
         keys.add(key);
     }
