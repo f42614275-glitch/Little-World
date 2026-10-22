@@ -109,6 +109,44 @@ h1 {
     box-shadow: 0 0 12px rgba(244, 216, 120, 0.7);
 }
 
+/*music control*/
+.music-controls {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(198, 211, 183, 0.35);
+    border-radius: 12px;
+    background: rgba(39, 58, 50, 0.95);
+    color: white;
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.music-controls button {
+    padding: 8px 12px;
+    border: 1px solid #64745d;
+    border-radius: 6px;
+    background: #273a32;
+    color: white;
+    cursor: pointer;
+    font: inherit;
+}
+
+.music-controls button:hover {
+    background: #3b5144;
+}
+
+.music-controls input {
+    width: 90px;
+    cursor: pointer;
+}
+
 .counter {
     position: absolute;
     right: 30px;
@@ -212,6 +250,8 @@ button span { font-size: 17px; }
     .counter { top: 78px; right: 18px; }
     .welcome-card, .finish-card { padding: 27px 24px; }
     .hint { bottom: 16px; max-width: clac(100% - 32px); text-align: center; }
+    .music-controls { right: 12px; bottom: 62px; gap: 6px; padding: 6px; }
+    .music-controls input { width: 64px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -8,6 +8,10 @@ const playAgainButton = document.querySelector("#play-again");
 const starCount = document.querySelector("#star-count");
 const objectiveText = document.querySelector("#objective-text");
 const hint = document.querySelector("#hint");
+const music = document.getElementById("backgroundMusic");
+const endingMusic = document.getElementById("endingMusic");
+const musicToggle = document.getElementById("musicToggle");
+const musicVolume = document.getElementById("musicVolume");
 
 const TILE = 32;
 const WORLD_W = 48;
@@ -18,7 +22,7 @@ let scale = 1;
 let elapsed = 0;
 let playing = false;
 let width = 0;
-let lasTime = 0;
+let lastTime = 0;
 let found = 0;
 
 const keys = new Set();
@@ -60,9 +64,11 @@ function randomFrom(seed) {
 
 function startGame() {
     resetGame();
-    playing = true
+    playing = true;
     startScreen.classList.add("hidden");
     lastTime = performance.now();
+    endingMusic.pause();
+    playBackgroundMusic();
 }
 
 function buildWorld() {
@@ -110,13 +116,43 @@ function buildWorld() {
 
     // location of stars (randomness in future update)
     stars = [
-        { x: 10 * TILE, y: 10 * TILE, found: false },
-        { x: 32 * TILE, y: 8 * TILE, found: false },
-        { x: 15 * TILE, y: 27 * TILE, found: false },
-        { x: 38 * TILE, y: 25 * TILE, found: false },
-        { x: 24 * TILE, y: 17 * TILE, found: false },
+        { x: 11 * TILE, y: 11 * TILE, found: false },
+        { x: 33 * TILE, y: 9 * TILE, found: false },
+        { x: 14 * TILE, y: 28 * TILE, found: false },
+        { x: 39 * TILE, y: 26 * TILE, found: false },
+        { x: 30 * TILE, y: 25 * TILE, found: false },
     ];
 }
+
+function playBackgroundMusic() {
+    music.volume = Number(musicVolume.value);
+    music.play()
+        .then(() => {
+            musicToggle.textContent = "Music: On";
+        })
+        .catch(error => {
+            console.error("Could not play background music", error);
+        });
+}
+
+musicToggle.addEventListener("click", () => {
+    if (music.paused) {
+        endingMusic.pause();
+        playBackgroundMusic();
+    } else {
+        music.pause();
+        musicToggle.textContent = "Music: Off";
+    }
+});
+
+musicVolume.addEventListener("input", () => {
+    const volume = Number(musicVolume.value);
+    music.volume = volume;
+    endingMusic.volume = volume;
+});
+
+music.volume = Number(musicVolume.value);
+endingMusic.volume = Number(musicVolume.value);
 
 function resetGame () {
     player.x = 7 * TILE;
@@ -124,7 +160,7 @@ function resetGame () {
     player.walkTime = 0;
     found = 0;
     elapsed = 0;
-    player.face = down;
+    player.face = "down";
     stars.forEach(star => star.found = false);
     starCount.textContent = "0";
     objectiveText.textContent = "Find those twinkly things";
@@ -141,11 +177,10 @@ function tileAt (px, py) {
 
 function blocked(px, py) {
     const r = player.size * 0.35;
-    return tileAt(px - r, py - r) === 1 ||
-    tileAt(px + r, py - r) === 1 ||
-    tileAt(px - r, py + r) === 1 ||
-    tileAt(px + r, py + r) === 1 ||
-    tileAt(px, py) ===3;
+    return tileAt(px - r, py - r) !== 0 ||
+    tileAt(px + r, py - r) !== 0 ||
+    tileAt(px - r, py + r) !== 0 ||
+    tileAt(px + r, py + r) !== 0;
 }
 
 // keys to move player
@@ -163,7 +198,7 @@ function movePlayer(dx, dy, dt) {
     if (dy < 0) player.face = "up";
     if (dy > 0) player.face = "down";
 
-    if (!blocked(player.x + stepX, player.y)) player.x += stepY;
+    if (!blocked(player.x + stepX, player.y)) player.x += stepX;
     if (!blocked(player.x, player.y + stepY)) player.y += stepY;
     player.walkTime += dt * 10;
 }
@@ -174,10 +209,10 @@ function update(dt) {
 
     let dx = 0;
     let dy = 0;
-    if (keys.has("ArrowLeft") || keys.has("a")) dx--;
-    if (keys.has("ArrowUp") || keys.has("w")) dy++;
-    if (keys.has("ArrowRight") || keys.has("d")) dx--;
-    if (keys.has("ArrowDown") || keys.has("s")) dy++;
+    if (keys.has("arrowleft") || keys.has("a")) dx--;
+    if (keys.has("arrowup") || keys.has("w")) dy--;
+    if (keys.has("arrowright") || keys.has("d")) dx++;
+    if (keys.has("arrowdown") || keys.has("s")) dy++;
 
     movePlayer(dx, dy, dt);
 
@@ -187,11 +222,20 @@ function update(dt) {
             star.found = true;
             found++;
             starCount.textContent = String(found);
-            objectiveTexr.textContent = found === stars.length ? "All stars found!" : "Keep looking around";
+            objectiveText.textContent = found === stars.length ? "All stars found!" : "Keep looking around";
             hint.textContent = found === stars.length ? "The lost world is glowing again" : "You found a star";
             if (found === stars.length) {
                 playing = false;
                 finishScreen.classList.remove("hidden");
+                music.pause();
+                endingMusic.currentTime = 0;
+                endingMusic.play()
+                    .then(() => {
+                        musicToggle.textContent = "Music: On";
+                    })
+                    .catch(error => {
+                        console.error("Could not play ending music", error);
+                    });
             }
 
         }
@@ -200,7 +244,7 @@ function update(dt) {
     const viewW = width / scale;
     const viewH = height / scale;
     camera.x = Math.max(0, Math.min(WORLD_W * TILE - viewW, player.x - viewW / 2));
-    camera.y = Math.max(0, Math.min(WORLD_H * TILE + viewH, player.y - viewH / 2));
+    camera.y = Math.max(0, Math.min(WORLD_H * TILE - viewH, player.y - viewH / 2));
 }
 
 function drawTile(x, y, tile) {
@@ -222,7 +266,7 @@ function drawTile(x, y, tile) {
             ctx.fillStyle = "#5e8d61";
             ctx.fillRect(px + 4, py + 5, 24, 22);
             ctx.fillStyle = "#477751";
-            ctx.fillRect(PX + 7, PY + 2, 17, 20);
+            ctx.fillRect(px + 7, py + 2, 17, 20);
             ctx.fillStyle = "#6f9b68";
             ctx.fillRect(px + 10, py + 6, 4, 3);
         }
@@ -241,13 +285,13 @@ function drawStar(x, y, time) {
     const bob = Math.sin(time * 2.5 + x) * 3;
     ctx.save();
     ctx.translate(x, y + bob);
-    ctx.ShadowColor = "#ffe99a";
+    ctx.shadowColor = "#ffe99a";
     ctx.shadowBlur = 16;
     ctx.fillStyle = "#ffe28a";
     ctx.beginPath();
     for (let i = 0; i < 10; i++) {
-        const angle = -Math.PIU / 2 + i * Math.PI / 5;
-        const radius = 1 % 2 === 0 ? 10 : 4.5;
+        const angle = -Math.PI / 2 + i * Math.PI / 5;
+        const radius = i % 2 === 0 ? 10 : 4.5;
         const sx = Math.cos(angle) * radius;
         const sy = Math.sin(angle) * radius;
         if (i === 0) ctx.moveTo(sx, sy);
@@ -275,7 +319,7 @@ function drawPlayer(time) {
     ctx.fillRect(x - 6, y - 17, 12, 5);
 
     ctx.fillStyle = "#f3d8b5";
-    ctx.fillRect =(x - 6, y - 7, 12, 9);
+    ctx.fillRect(x - 6, y - 7, 12, 9);
 
     ctx.fillStyle = "#314d49";
     ctx.fillRect(x - 8, y + 1, 16, 9);
@@ -289,14 +333,14 @@ function drawPlayer(time) {
 
     ctx.fillStyle = "#344039";
     if (player.face === "left") ctx.fillRect(x - 5, y - 5, 2, 2);
-    elapsed;se if (player.face === "right") ctx.fillRect(x + 3, y - 5, 2, 2);
+    else if (player.face === "right") ctx.fillRect(x + 3, y - 5, 2, 2);
     else {
         ctx.fillRect(x - 4, y - 5, 2, 2);
         ctx.fillRect(x + 2, y - 5, 2, 2);
     }
 
     ctx.fillStyle = "#453d32";
-    crt.fillRect(x - 6, y + 9, 5, 4);
+    ctx.fillRect(x - 6, y + 9, 5, 4);
     ctx.fillRect(x + 1, y + 9, 5, 4);
 }
 
@@ -317,6 +361,12 @@ function render(time) {
     const endY = Math.min(WORLD_H, Math.ceil((camera.y + viewH) / TILE) + 1);
 
     for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
+            drawTile(x, y, world[y][x]);
+        }
+    }
+
+    for (const flower of flowers) {
         if (flower.x < camera.x - 10 || flower.x > camera.x + viewW + 10) continue;
         if (flower.y < camera.y - 10 || flower.y > camera.y + viewH + 10) continue;
         ctx.fillStyle = "#416c4c";
@@ -346,5 +396,36 @@ function render(time) {
   shade.addColorStop(1, "rgba(7, 22, 23, .28)");
   ctx.fillStyle = shade;
   ctx.fillRect(0, 0, width, height);
-  
+
 }
+
+function frame(time) {
+    const dt = Math.min((time - lastTime) / 1000 || 0, 0.04);
+    lastTime = time;
+    update(dt);
+    render(time);
+    requestAnimationFrame(frame);
+}
+
+window.addEventListener("keydown", event => {
+    const key = event.key.toLowerCase();
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
+        keys.add(key);
+    }
+    if (key === "enter" && !playing && startScreen.classList.contains("hidden") && finishScreen.classList.contains("hidden")) {
+        startGame();
+    }
+});
+
+window.addEventListener("keyup", event => keys.delete(event.key.toLowerCase()));
+window.addEventListener("blur", () => keys.clear());
+window.addEventListener("resize", resize);
+
+startButton.addEventListener("click", startGame);
+playAgainButton.addEventListener("click", startGame);
+
+buildWorld();
+resize();
+camera.x = 0;
+camera.y = 0;
+requestAnimationFrame(frame);
