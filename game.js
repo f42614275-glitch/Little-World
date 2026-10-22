@@ -238,7 +238,7 @@ function update(dt) {
             player.y - item.y 
         );
 
-        if (distance < 15) {
+        if (distance < 30) {
             hint.textContent = "Press E to discover";
         }
     }
@@ -417,15 +417,26 @@ function render(time) {
 
     for (const item of discoveries) {
         if (item.found) continue;
+        
+        const pulse = (Math.sin(time * 0.004) + 1) / 2;
+        const glow = 10 + pulse * 14;
+        const size = 4 + pulse * 4;
 
         ctx.save();
 
-        ctx.shadowColor = "#c01640";
-        ctx.shadowBlur = "28";
+        ctx.shadowColor = "#b9ff91";
+        ctx.shadowBlur = glow;
 
-        ctx.fillStyle = "#c11a44";
-        ctx.fillRect(item.x - 5, item.y - 5, 10, 10);
+        ctx.fillStyle = "#b9e7a1";
+        ctx.fillRect(
+            item.x - size,
+            item.y - size,
+            size * 2,
+            size * 2
+        );
 
+
+        ctx.shadowBlur = glow / 2;
         ctx.fillStyle = "#efffc2";
         ctx.fillRect(item.x - 2, item.y - 2, 4, 4);
 
@@ -462,7 +473,7 @@ window.addEventListener("keydown", event => {
                 player.y - item.y
             );
 
-            if (distance < 15) {
+            if (distance < 30) {
                 item.found = true;
                 discoveriesFound++;
                 hint.textContent = item.message;
