@@ -42,8 +42,10 @@ const camera = { x: 0, y: 0 }; /* camera position */
 const monster = {
     x: 40 * TILE,
     y: 30 * TILE,
-    speed: 100,
-    active: false
+    speed: 150,
+    active: false,
+    path: [],
+    pathTarget: -1
 };
 
 let world = [];
@@ -76,6 +78,7 @@ function randomFrom(seed) {
 function startGame() {
     resetGame();
     playing = true;
+    monster.active = true;
     startScreen.classList.add("hidden");
     lastTime = performance.now();
     endingMusic.pause();
@@ -199,9 +202,12 @@ function resetGame () {
     elapsed = 0;
     player.face = "down";
     stars.forEach(star => star.found = false);
-    monster.x = 40 * TILE;
-    monster.y = 30 * TILE;
+    const monsterSpawn = nearestWalkablePosition(40 * TILE, 30 * TILE);
+    monster.x = monsterSpawn.x;
+    monster.y = monsterSpawn.y;
     monster.active = false;
+    monster.path = [];
+    monster.pathTarget = -1;
     starCount.textContent = "0";
     objectiveText.textContent = "Find those twinkly things";
     hint.textContent = "Move with WASD or arrow keys";
@@ -215,12 +221,82 @@ function tileAt (px, py) {
     return world[ty][tx];
 }
 
+function nearestWalkablePosition(px, py) {
+    let nearest = null;
+    let nearestDistance = Infinity;
+
+    for (let y = 0; y < WORLD_H; y++) {
+        for (let x = 0; x < WORLD_W; x++) {
+            if (world[y][x] !== 0) continue;
+            const centerX = (x + 0.5) * TILE;
+            const centerY = (y + 0.5) * TILE;
+            const distance = Math.hypot(centerX - px, centerY - py);
+            if (distance < nearestDistance) {
+                nearest = { x: centerX, y: centerY };
+                nearestDistance = distance;
+            }
+        }
+    }
+
+    return nearest || { x: px, y: py };
+}
+
 function blocked(px, py) {
     const r = player.size * 0.35;
     return tileAt(px - r, py - r) !== 0 ||
     tileAt(px + r, py - r) !== 0 ||
     tileAt(px - r, py + r) !== 0 ||
     tileAt(px + r, py + r) !== 0;
+}
+
+function monsterBlocked(px, py) {
+    const radius = 10;
+    return [tileAt(px - radius, py - radius), tileAt(px + radius, py - radius),
+        tileAt(px - radius, py + radius), tileAt(px + radius, py + radius)]
+        .some(tile => tile !== 0);
+}
+
+function findMonsterPath(startX, startY, targetX, targetY) {
+    const start = startY * WORLD_W + startX;
+    const target = targetY * WORLD_W + targetX;
+    const previous = new Int32Array(WORLD_W * WORLD_H).fill(-1);
+    const queue = [start];
+    previous[start] = start;
+
+    for (let head = 0; head < queue.length && previous[target] === -1; head++) {
+        const current = queue[head];
+        const x = current % WORLD_W;
+        const y = Math.floor(current / WORLD_W);
+        const neighbors = [
+            [x - 1, y],
+            [x + 1, y],
+            [x, y - 1],
+            [x, y + 1]
+        ];
+
+        for (const [nextX, nextY] of neighbors) {
+            if (nextX < 0 || nextY < 0 || nextX >= WORLD_W || nextY >= WORLD_H) continue;
+            const next = nextY * WORLD_W + nextX;
+            if (previous[next] !== -1 || world[nextY][nextX] !== 0) continue;
+            previous[next] = current;
+            queue.push(next);
+        }
+    }
+
+    if (previous[target] === -1) return [];
+
+    const path = [];
+    for (let cell = target; cell !== start; cell = previous[cell]) {
+        path.push({
+            x: (cell % WORLD_W + 0.5) * TILE,
+            y: (Math.floor(cell / WORLD_W) + 0.5) * TILE
+        });
+    }
+    path.push({
+        x: (startX + 0.5) * TILE,
+        y: (startY + 0.5) * TILE
+    });
+    return path.reverse();
 }
 
 // keys to move player
@@ -336,25 +412,34 @@ function update(dt) {
         }
     }
 
-    if (found >= 3) {
-        monster.active = true;
-    }
-
     if (monster.active && playing) {
-        const dx = player.x - monster.x;
-        const dy = player.y - monster.y;
-        const distance = Math.hypot(dx, dy);
+        const startX = Math.floor(monster.x / TILE);
+        const startY = Math.floor(monster.y / TILE);
+        const targetX = Math.floor(player.x / TILE);
+        const targetY = Math.floor(player.y / TILE);
+        const target = targetY * WORLD_W + targetX;
 
-        if (distance > 0) {
-            const stepX = (dx / distance) * monster.speed * dt;
-            const stepY = (dy / distance) * monster.speed * dt;
+        if (monster.pathTarget !== target) {
+            monster.path = findMonsterPath(startX, startY, targetX, targetY);
+            monster.pathTarget = target;
+        }
 
-            const nextX = monster.x + stepX;
-            const nextY = monster.y + stepY;
+        while (monster.path.length > 0 &&
+            Math.hypot(monster.path[0].x - monster.x, monster.path[0].y - monster.y) < 2) {
+            monster.path.shift();
+        }
 
-            if (tileAt(nextX, monster.y) !== 1 && tileAt(nextX, monster.y) !== 3) {
+        if (monster.path.length > 0) {
+            const waypoint = monster.path[0];
+            const dx = waypoint.x - monster.x;
+            const dy = waypoint.y - monster.y;
+            const distance = Math.hypot(dx, dy);
+            const step = Math.min(monster.speed * dt, distance);
+            const nextX = monster.x + dx / distance * step;
+            const nextY = monster.y + dy / distance * step;
 
-            }
+            if (!monsterBlocked(nextX, monster.y)) monster.x = nextX;
+            if (!monsterBlocked(monster.x, nextY)) monster.y = nextY;
         }
 
         if (Math.hypot(player.x - monster.x, player.y - monster.y) < 21) {
@@ -362,8 +447,11 @@ function update(dt) {
             player.y = 7 * TILE;
             player.face = "down";
 
-            monster.x = 40 * TILE;
-            monster.y = 30 * TILE;
+            const monsterSpawn = nearestWalkablePosition(40 * TILE, 30 * TILE);
+            monster.x = monsterSpawn.x;
+            monster.y = monsterSpawn.y;
+            monster.path = [];
+            monster.pathTarget = -1;
 
             hint.textContent = "Abhijeet caught you! Run away!";
         }
