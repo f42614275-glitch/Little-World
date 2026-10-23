@@ -16,6 +16,7 @@ const musicVolume = document.getElementById("musicVolume");
 const TILE = 32;
 const WORLD_W = 48;
 const WORLD_H = 36;
+const DISCOVERY_RADIUS = 30;
 
 let height = 0;
 let scale = 1;
@@ -38,9 +39,16 @@ const player = {
 };
 
 const camera = { x: 0, y: 0 }; /* camera position */
+const monster = {
+    x: 40 * TILE,
+    y: 30 * TILE,
+    speed: 100,
+    active: false
+};
 
 let world = [];
 let stars = [];
+let starBursts = [];
 let flowers = [];
 let stones = [];
 let natureParticles = [];
@@ -191,6 +199,9 @@ function resetGame () {
     elapsed = 0;
     player.face = "down";
     stars.forEach(star => star.found = false);
+    monster.x = 40 * TILE;
+    monster.y = 30 * TILE;
+    monster.active = false;
     starCount.textContent = "0";
     objectiveText.textContent = "Find those twinkly things";
     hint.textContent = "Move with WASD or arrow keys";
@@ -232,6 +243,37 @@ function movePlayer(dx, dy, dt) {
     player.walkTime += dt * 10;
 }
 
+let starAudio;
+
+function playStarSound() {
+    const Audio = window.AudioContext || window.AudioContext;
+    if (!Audio) return;
+
+    if (!starAudio) starAudio = new Audio();
+    if (starAudio.state === "suspended") starAudio.resume();
+
+    const now = starAudio.currentTime;
+    const notes = [880, 1174.66, 1567.98];
+
+    notes.forEach((frequency, i) => {
+        const oscillator = starAudio.createOscillator();
+        const gain = starAudio.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, now + i * 0.055);
+
+        gain.gain.setValueAtTime(0.0001, now + i * 0.055);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + i * 0.055 + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.055 + 0.22);
+
+        oscillator.connect(gain);
+        gain.connect(starAudio.destination);
+
+        oscillator.start(now + i * 0.055);
+        oscillator.stop(now + i * 0.055 + 0.23);
+    });
+}
+
 function update(dt) {
     if (!playing) return;
     elapsed += dt;
@@ -245,23 +287,34 @@ function update(dt) {
 
     movePlayer(dx, dy, dt);
 
+    let canDiscover = false;
     for (const item of discoveries) {
         if (item.found) continue;
 
         const distance = Math.hypot(
             player.x - item.x,
-            player.y - item.y 
+            player.y - item.y
         );
 
-        if (distance < 30) {
+        if (distance < DISCOVERY_RADIUS) {
             hint.textContent = "Press E to discover";
+            canDiscover = true;
         }
+    }
+    if (!canDiscover && hint.textContent === "Press E to discover") {
+        hint.textContent = "Move with WASD or arrow keys";
     }
 
     for (const star of stars) {
         if (star.found) continue;
         if (Math.hypot(player.x - star.x, player.y - star.y) < 24) {
             star.found = true;
+            playStarSound();
+            starBursts.push({
+                x: star.x,
+                y: star.y,
+                start: performance.now()
+            });
             found++;
             starCount.textContent = String(found);
             objectiveText.textContent = found === stars.length ? "All stars found!" : "Keep looking around";
@@ -280,6 +333,39 @@ function update(dt) {
                     });
             }
 
+        }
+    }
+
+    if (found >= 3) {
+        monster.active = true;
+    }
+
+    if (monster.active && playing) {
+        const dx = player.x - monster.x;
+        const dy = player.y - monster.y;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > 0) {
+            const stepX = (dx / distance) * monster.speed * dt;
+            const stepY = (dy / distance) * monster.speed * dt;
+
+            const nextX = monster.x + stepX;
+            const nextY = monster.y + stepY;
+
+            if (tileAt(nextX, monster.y) !== 1 && tileAt(nextX, monster.y) !== 3) {
+
+            }
+        }
+
+        if (Math.hypot(player.x - monster.x, player.y - monster.y) < 21) {
+            player.x = 7 * TILE;
+            player.y = 7 * TILE;
+            player.face = "down";
+
+            monster.x = 40 * TILE;
+            monster.y = 30 * TILE;
+
+            hint.textContent = "Abhijeet caught you! Run away!";
         }
     }
 
@@ -455,6 +541,29 @@ function render(time) {
         if (!star.found) drawStar(star.x, star.y, time / 1000);
     }
 
+    starBursts = starBursts.filter(burst => {
+        const age = (time - burst.start) / 1000;
+        if (age >= 0.45) return false;
+
+        const distance = age * 30;
+        const opacity = 1 - age / 0.45;
+
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = "#ffe99a";
+
+        for (let i = 0; i < 8; i++) {
+            const angle = i * Math.PI / 4;
+            const x = burst.x + Math.cos(angle) * distance;
+            const y = burst.y + Math.sin(angle) * distance;
+
+            ctx.fillRect(Math.round(x), Math.round(y), 3, 3);
+        }
+
+        ctx.restore();
+        return true;
+    });
+
     for (const item of discoveries) {
         if (item.found) continue;
         
@@ -483,6 +592,33 @@ function render(time) {
         ctx.restore();
     }
 
+    if (monster.active) {
+        const bob = Math.sin(time * 0.008) * 2;
+        const x = Math.round(monster.x);
+        const y = Math.round(monster.y + bob);
+
+        ctx.fillStyle = "#12191b4d"
+        ctx.fillRect(x - 12, y + 9, 24, 5);
+
+        ctx.fillStyle = "#263239";
+        ctx.fillRect(x - 10, y - 9, 20, 18);
+        ctx.fillRect(x - 13, y - 5, 5, 10);
+        ctx.fillRect(x + 8, y - 5, 5, 10);
+
+        ctx.fillStyle = "#111d25";
+        ctx.fillRect(x - 7, y - 13, 14, 7);
+        ctx.fillRect(x - 7, y + 7, 5, 5);
+        ctx.fillRect(x + 2, y + 7, 5, 5);
+
+        ctx.fillStyle = "#ff6b70";
+        ctx.fillRect(x - 6, y - 5, 4, 4);
+        ctx.fillRect(x + 3, y - 5, 4, 4);
+
+        ctx.fillStyle = "#ffe5a1";
+        ctx.fillRect(x - 5, y - 5, 2, 2);
+        ctx.fillRect(x + 4, y - 5, 2, 2);
+    }
+    
       drawPlayer(time);
   ctx.restore();
 
@@ -513,7 +649,7 @@ window.addEventListener("keydown", event => {
                 player.y - item.y
             );
 
-            if (distance < 30) {
+            if (distance < DISCOVERY_RADIUS) {
                 item.found = true;
                 discoveriesFound++;
                 hint.textContent = item.message;
