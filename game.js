@@ -22,6 +22,7 @@ let height = 0;
 let scale = 1;
 let elapsed = 0;
 let playing = false;
+let playerMoving = false;
 let width = 0;
 let lastTime = 0;
 let found = 0;
@@ -42,7 +43,7 @@ const camera = { x: 0, y: 0 }; /* camera position */
 const monster = {
     x: 40 * TILE,
     y: 30 * TILE,
-    speed: 150,
+    speed: 160,
     active: false,
     path: [],
     pathTarget: -1
@@ -302,7 +303,9 @@ function findMonsterPath(startX, startY, targetX, targetY) {
 // keys to move player
 function movePlayer(dx, dy, dt) {
     const length = Math.hypot(dx, dy);
+    playerMoving = length > 0;
     if (!length) return;
+
     dx /= length;
     dy /= length;
 
@@ -519,45 +522,55 @@ function drawStar(x, y, time) {
 }
 
 function drawPlayer(time) {
-    const bob = Math.sin(player.walkTime) * 1.5;
-    const x = player.x;
-    const y = player.y + bob;
+    const step = playerMoving ? Math.sin(player.walkTime) : 0;
+    const bob = playerMoving? Math.abs(step) * 1.2
+    : Math.sin(time * 0.002) * 0.7;
+
+    const x = Math.round(player.x);
+    const y = Math.round(player.y + bob);
+    const armSwing = playerMoving ? step * 2 : 0;
+    const legSwing = playerMoving ? step * 2 : 0;
 
     ctx.fillStyle = "#19302747";
     ctx.beginPath();
     ctx.ellipse(x, y + 10, 10, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#e9c6a2";
-    ctx.fillRect(x - 7, y - 11, 14, 14);
-    ctx.fillStyle = "#5a493b";
-    ctx.fillRect(x - 8, y - 14, 16, 6);
-    ctx.fillRect(x - 6, y - 17, 12, 5);
-
-    ctx.fillStyle = "#f3d8b5";
-    ctx.fillRect(x - 6, y - 7, 12, 9);
-
-    ctx.fillStyle = "#314d49";
-    ctx.fillRect(x - 8, y + 1, 16, 9);
-    ctx.fillStyle = "#d7e0bd"
-    ctx.fillRect(x - 5, y + 3, 10, 3);
-
+    //legs
     ctx.fillStyle = "#344039";
+    ctx.fillRect(x - 6, y + 8 + legSwing, 5, 5);
+    ctx.fillRect(x + 1, y + 8 - legSwing, 5, 5);
+
+    //arms
+    ctx.fillStyle = "#e9c6a2";
+    ctx.fillRect(x - 10, y - 1 + armSwing, 3, 7);
+    ctx.fillRect(x + 7, y - 1 - armSwing, 3, 7);
+
+    //body
+    ctx.fillStyle = "#314d49";
     ctx.fillRect(x - 8, y + 1, 16, 9);
     ctx.fillStyle = "#d7e0bd";
     ctx.fillRect(x - 5, y + 3, 10, 3);
 
+    //head and rest 
+    ctx.fillStyle = "#e9c6a2";
+    ctx.fillRect(x - 7, y - 11, 14, 14);
+    ctx.fillStyle = "#5a493b"
+    ctx.fillRect(x - 8, y - 14, 16, 6);
+    ctx.fillRect(x - 6, y - 17, 12, 5);
     ctx.fillStyle = "#344039";
-    if (player.face === "left") ctx.fillRect(x - 5, y - 5, 2, 2);
-    else if (player.face === "right") ctx.fillRect(x + 3, y - 5, 2, 2);
-    else {
+
+    if (player.face === "left") {
+        ctx.fillRect(x - 6, y - 5, 2, 2);
+    } else if (player.face === "right") {
+        ctx.fillRect(x + 4, y - 5, 2, 2);
+    } else if (player.face === "up") {
+        ctx.fillStyle = "#5a493b";
+        ctx.fillRect(x - 5, y - 7, 10, 3);
+    } else {
         ctx.fillRect(x - 4, y - 5, 2, 2);
         ctx.fillRect(x + 2, y - 5, 2, 2);
     }
-
-    ctx.fillStyle = "#453d32";
-    ctx.fillRect(x - 6, y + 9, 5, 4);
-    ctx.fillRect(x + 1, y + 9, 5, 4);
 }
 
 function render(time) {
@@ -688,15 +701,17 @@ function render(time) {
         ctx.fillStyle = "#12191b4d"
         ctx.fillRect(x - 12, y + 9, 24, 5);
 
+        const wiggle = Math.sin(time * 0.012) * 2;
+
         ctx.fillStyle = "#263239";
         ctx.fillRect(x - 10, y - 9, 20, 18);
-        ctx.fillRect(x - 13, y - 5, 5, 10);
-        ctx.fillRect(x + 8, y - 5, 5, 10);
-
+        ctx.fillRect(x - 13, y - 5 + wiggle, 5, 10);
+        ctx.fillRect(x + 8, y - 5 - wiggle, 5, 10);
+        
         ctx.fillStyle = "#111d25";
         ctx.fillRect(x - 7, y - 13, 14, 7);
-        ctx.fillRect(x - 7, y + 7, 5, 5);
-        ctx.fillRect(x + 2, y + 7, 5, 5);
+        ctx.fillRect(x - 7, y + 7 + wiggle, 5, 5);
+        ctx.fillRect(x + 2, y + 7 - wiggle, 5, 5);
 
         ctx.fillStyle = "#ff6b70";
         ctx.fillRect(x - 6, y - 5, 4, 4);
