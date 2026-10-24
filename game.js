@@ -54,6 +54,19 @@ let stars = [];
 let starBursts = [];
 let flowers = [];
 let stones = [];
+let pond = {
+    x: 32 * TILE,
+    y: 15 * TILE,
+    width: 6 * TILE,
+    height: 4 * TILE
+};
+let treasureChest = {
+    x: 20 * TILE,
+    y: 12 * TILE,
+    opened: false,
+    massageShown: false
+};
+let chestSparkles = [];
 let natureParticles = [];
 let discoveries = [];
 let discoveriesFound = 0;
@@ -248,6 +261,19 @@ function blocked(px, py) {
     tileAt(px + r, py - r) !== 0 ||
     tileAt(px - r, py + r) !== 0 ||
     tileAt(px + r, py + r) !== 0;
+    const pondLeft = pond.x;
+    const pondTop = pond.y;
+    const pondRight = pond.x + pond.width;
+    const pondBottom = pond.y + pond.height;
+
+    if (
+        x + 8 > pondLeft &&
+        x - 8 < pondRight &&
+        y + 8 > pondTop &&
+        y - 8 < pondBottom 
+    ) {
+        return true;
+    }
 }
 
 function monsterBlocked(px, py) {
@@ -595,6 +621,71 @@ function render(time) {
         }
     }
 
+    const px = pond.x;
+    const py = pond.y;
+
+    ctx.fillStyle = "#315b50";
+    ctx.fillRect(px + 8, py, pond.width - 16, pond.height);
+    ctx.fillRect(px, py + 8, pond.width, pond.height - 16);
+    ctx.fillRect(px + 4, py + 4, pond.width - 8, pond.height - 8);
+
+    ctx.fillStyle = "#347f91";
+    ctx.fillRect(px + 8, py + 8, pond.width - 16, pond.height - 16);
+    ctx.fillRect(px + 8, py + 12, pond.width - 8, pond.height - 24);
+
+    ctx.fillStyle = "#58a6ad";
+    ctx.fillRect(px + 16, py + 16, pond.width - 32, pond.height - 32);
+    const sparkle = Math.sin(time * 0.004) * 2;
+    ctx.fillStyle = "#c3f3d5";
+    ctx.fillRect(px + 35, py + 20 + sparkle, 3, 3);
+    ctx.fillRect(px + 105, py + 65 - sparkle, 3, 3);
+    ctx.fillRect(px + 65, py + 85 + sparkle, 3, 3);
+
+    ctx.fillStyle = "#34745a";
+    ctx.fillRect(px + 22, py + 20, 13, 7);
+    ctx.fillRect(px + 24, py + 17, 7, 3);
+    ctx.fillRect(px + 75, py + 48, 14, 8)
+    ctx.fillRect(px + 80, py + 45, 7, 3);
+    ctx.fillRect(px + 43, py + 75, 12, 7);
+    ctx.fillRect(px + 46, py + 72, 6, 3);
+    ctx.fillStyle = "#f5c8df";
+    ctx.fillRect(px + 29, py + 19, 3, 3);
+    ctx.fillStyle = "#fff0b8";
+    ctx.fillRect(px + 30, py + 20, 1, 1);
+
+    const cx = treasureChest.x;
+    const cy = treasureChest.y;
+
+    ctx.fillStyle = "#141e1940";
+    ctx.fillRect(cx - 10, cy + 7, 22, 5);
+    ctx.fillStyle = "#795039";
+    ctx.fillRect(cx - 10, cy - 5, 20, 13);
+    ctx.fillStyle = "#a56c43";
+    ctx.fillRect(cx - 10, cy - 5, 20, 5);
+    ctx.fillStyle = "#f2c65d";
+    ctx.fillRect(cx - 10, cy - 6, 20, 2);
+    ctx.fillRect(cx - 2, cy - 2, 4, 6);
+    
+    if (treasureChest.opened) {
+        ctx.fillStyle = "#795039"
+        ctx.fillRect(cx - 9, cy - 11, 18, 5);
+        ctx.fillStyle = "#f8dc82";
+        ctx.fillRect(cx - 5, cy - 15, 10, 3);
+
+        chestSparkles = chestSparkles.filter(p => p.life > 0);
+
+        for (const p of chestSparkles) {
+            p.x += p.vx * 0.016;
+            p.y += p.vy * 0.016;
+            p.life -= 0.016;
+
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillStyle = "#ffe58a";
+            ctx.fillRect(p.x , p.y, 3, 3);
+        }
+        ctx.globalAlpha
+    }
+
     for (const flower of flowers) {
         if (flower.x < camera.x - 10 || flower.x > camera.x + viewW + 10) continue;
         if (flower.y < camera.y - 10 || flower.y > camera.y + viewH + 10) continue;
@@ -758,6 +849,28 @@ window.addEventListener("keydown", event => {
                 hint.textContent = item.message;
                 objectiveText.textContent = "Secrets found:" + discoveriesFound;
                 break;
+            }
+        }
+    }
+    if (key.toLowerCase()=== "e" && playing) {
+        const distance = Math.hypot(
+            player.x - treasureChest.x,
+            player.y - treasureChest.y,
+        );
+
+        if (distance < 48 && !treasureChest.opened) {
+            treasureChest.opened = "true";
+            treasureChest.massageShown = true;
+            hint.textContent = "Damn! You found an ancient treasure";
+
+            for (let i = 0; i < 12; i++) {
+                chestSparkles.push({
+                    x: treasureChest.x,
+                    y: treasureChest.y,
+                    vx: (Math.random() - 0.5) * 100,
+                    vy: (Math.random() + 0.5) * 100,
+                    life: 1
+                });
             }
         }
     }
