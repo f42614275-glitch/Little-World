@@ -14,17 +14,26 @@
                 <div class="game-name">
                     <span class="tiny-star">✦</span>
                     <div>
-                        <p class="eyebrow">A VERY CONFINED SPACE TO EXPLOREEEE</p>
+                        <p class="eyebrow">A SMALL WORLD, FULL OF WONDER</p>
                         <h1>Little Planet</h1>
                     </div>
                 </div>
                 <div class="objective">
                     <span class="objective-dot"></span>
-                    <span id="objective-text">Find those twinkley thing</span>
+                    <span id="objective-text">Find those twinkly things</span>
                 </div>
             </section>
 
-            <div class="counter"><span class="star-icon">✦</span><span id="star-count"></span><span class="counter-label">/ 5 stars</span></div>
+            <div class="counter" aria-label="Star collection progress">
+                <div class="counter-top">
+                    <span class="star-icon">✦</span>
+                    <span id="star-count">0</span>
+                    <span class="counter-label">/ 5 stars</span>
+                </div>
+                <div class="progress-track" role="progressbar" aria-label="Stars collected" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+                    <span id="star-progress"></span>
+                </div>
+            </div>
 
             <div class="hint" id="hint">Move with WASD or arrow keys</div>
 
@@ -32,13 +41,13 @@
                 <div class="welcome-card">
                     <p class="eyebrow">SOMEWHERE IS THE</p>
                     <h2>The Lost World</h2>
-                    <p>This heavenly place has lost the light it had before :( . Wander through the world and bring the stars which lit this world up :)</p>
+                    <p>A sleepy little world has lost its stars. Wander through meadows, peek into old ruins, and bring the night sky back to life.</p>
                     <button id="start-button" type="button">Start Roaming</button>
                     <p class="controls-note">WASD / ARROW KEYS to move. <span>•</span> Collect all 5 stars</p>
                 </div>
             </section>
 
-            /* Music */
+            <!-- Music controls -->
             <div class="music-controls">
                 <button id="musicToggle" type="button">
                     Music: Off

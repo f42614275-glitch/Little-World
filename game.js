@@ -6,6 +6,7 @@ const finishScreen = document.querySelector("#finish");
 const startButton = document.querySelector("#start-button");
 const playAgainButton = document.querySelector("#play-again");
 const starCount = document.querySelector("#star-count");
+const starProgress = document.querySelector("#star-progress");
 const objectiveText = document.querySelector("#objective-text");
 const hint = document.querySelector("#hint");
 const music = document.getElementById("backgroundMusic");
@@ -225,6 +226,10 @@ function resetGame () {
     player.walkTime = 0;
     found = 0;
     discoveriesFound = 0;
+    starBursts = [];
+    chestSparkles = [];
+    treasureChest.opened = false;
+    treasureChest.massageShown = false;
     discoveries.forEach(item => item.found = false);
     elapsed = 0;
     player.face = "down";
@@ -236,6 +241,8 @@ function resetGame () {
     monster.path = [];
     monster.pathTarget = -1;
     starCount.textContent = "0";
+    starProgress.style.width = "0%";
+    starProgress.setAttribute("aria-valuenow", "0");
     objectiveText.textContent = "Find those twinkly things";
     hint.textContent = "Move with WASD or arrow keys";
     finishScreen.classList.add("hidden");
@@ -270,23 +277,22 @@ function nearestWalkablePosition(px, py) {
 
 function blocked(px, py) {
     const r = player.size * 0.35;
-    return tileAt(px - r, py - r) !== 0 ||
-    tileAt(px + r, py - r) !== 0 ||
-    tileAt(px - r, py + r) !== 0 ||
-    tileAt(px + r, py + r) !== 0;
     const pondLeft = pond.x;
     const pondTop = pond.y;
     const pondRight = pond.x + pond.width;
     const pondBottom = pond.y + pond.height;
 
-    if (
-        x + 8 > pondLeft &&
-        x - 8 < pondRight &&
-        y + 8 > pondTop &&
-        y - 8 < pondBottom 
-    ) {
-        return true;
-    }
+    const hitsPond =
+        px + r > pondLeft &&
+        px - r < pondRight &&
+        py + r > pondTop &&
+        py - r < pondBottom;
+
+    return hitsPond ||
+        tileAt(px - r, py - r) !== 0 ||
+        tileAt(px + r, py - r) !== 0 ||
+        tileAt(px - r, py + r) !== 0 ||
+        tileAt(px + r, py + r) !== 0;
 }
 
 function monsterBlocked(px, py) {
@@ -435,6 +441,8 @@ function update(dt) {
             });
             found++;
             starCount.textContent = String(found);
+            starProgress.style.width = `${found / stars.length * 100}%`;
+            starProgress.setAttribute("aria-valuenow", String(found));
             objectiveText.textContent = found === stars.length ? "All stars found!" : "Keep looking around";
             hint.textContent = found === stars.length ? "The lost world is glowing again" : "You found a star";
             if (found === stars.length) {
@@ -562,15 +570,31 @@ function drawTile(x, y, tile) {
 
 function drawStar(x, y, time) {
     const bob = Math.sin(time * 2.5 + x) * 3;
+    const pulse = (Math.sin(time * 3 + x * 0.03) + 1) / 2;
     ctx.save();
     ctx.translate(x, y + bob);
+    ctx.globalAlpha = 0.24 + pulse * 0.2;
+    const beacon = ctx.createLinearGradient(0, -72, 0, -8);
+    beacon.addColorStop(0, "rgba(255, 226, 138, 0)");
+    beacon.addColorStop(1, "rgba(255, 226, 138, 0.75)");
+    ctx.fillStyle = beacon;
+    ctx.fillRect(-2, -72, 4, 64);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = `rgba(255, 226, 138, ${0.08 + pulse * 0.1})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 19 + pulse * 5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.shadowColor = "#ffe99a";
-    ctx.shadowBlur = 16;
-    ctx.fillStyle = "#ffe28a";
+    ctx.shadowBlur = 14 + pulse * 12;
+    const fill = ctx.createLinearGradient(-8, -10, 8, 10);
+    fill.addColorStop(0, "#fff8ca");
+    fill.addColorStop(0.55, "#ffe28a");
+    fill.addColorStop(1, "#f2b94b");
+    ctx.fillStyle = fill;
     ctx.beginPath();
     for (let i = 0; i < 10; i++) {
         const angle = -Math.PI / 2 + i * Math.PI / 5;
-        const radius = i % 2 === 0 ? 10 : 4.5;
+        const radius = i % 2 === 0 ? 11 : 5;
         const sx = Math.cos(angle) * radius;
         const sy = Math.sin(angle) * radius;
         if (i === 0) ctx.moveTo(sx, sy);
@@ -578,6 +602,9 @@ function drawStar(x, y, time) {
     }
     ctx.closePath();
     ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#fff9d5";
+    ctx.fillRect(-1, -6, 2, 5);
     ctx.restore();
 }
 
@@ -670,6 +697,17 @@ function render(time) {
     ctx.fillStyle = "#58a6ad";
     ctx.fillRect(px + 16, py + 16, pond.width - 32, pond.height - 32);
     const sparkle = Math.sin(time * 0.004) * 2;
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = "#b9e8cf";
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+        const ripple = (time * 0.018 + i * 28) % 42;
+        ctx.beginPath();
+        ctx.ellipse(px + 94, py + 44, 8 + ripple * 0.6, 3 + ripple * 0.16, 0, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.restore();
     ctx.fillStyle = "#c3f3d5";
     ctx.fillRect(px + 35, py + 20 + sparkle, 3, 3);
     ctx.fillRect(px + 105, py + 65 - sparkle, 3, 3);
@@ -753,20 +791,17 @@ function render(time) {
         const x = fly.x + driftX;
         const y = fly.y + driftY;
 
-        const glow = found >= 0
-        ? 0.4 + (Math.sin(time * 0.005 + fly.phase) + 1) * 0.3
-        : 0.12;
+        const glow = 0.3 + (Math.sin(time * 0.005 + fly.phase) + 1) * 0.25;
 
         ctx.globalAlpha = glow;
         ctx.fillStyle = "#ffe99a";
         ctx.beginPath();
-        ctx.arc(x, y, found >= 0 ? 3 : 2, 0, Math.PI * 2);
-        if (found >= 0) {
-            ctx.globalAlpha = glow * 0.25;
-            ctx.beginPath();
-            ctx.arc(x, y, 8, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = glow * 0.2;
+        ctx.beginPath();
+        ctx.arc(x, y, 9, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     ctx.globalAlpha = 1;
@@ -791,6 +826,8 @@ function render(time) {
     }
 
     for (const stone of stones) {
+        ctx.fillStyle = "#1e493a55";
+        ctx.fillRect(stone.x - 1, stone.y + stone.size * .55, stone.size + 3, stone.size * .3);
         ctx.fillStyle = "#557a5a";
         ctx.fillRect(stone.x, stone.y, stone.size, stone.size * .65);
         ctx.fillStyle = "#6d9168";
@@ -881,14 +918,14 @@ function render(time) {
         ctx.fillRect(x + 4, y - 5, 2, 2);
     }
 
-    if (found >= 4) {
-        const glow = 0.04 + (Math.sin(time * 0.0015) + 1) * 0.025;
-        ctx.fillStyle = `rgba(255, 213, 120, ${glow})`;
-        ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height);
-    }
-    
-      drawPlayer(time);
+    drawPlayer(time);
   ctx.restore();
+
+  if (found > 0) {
+      const glow = found / stars.length * (0.035 + (Math.sin(time * 0.0015) + 1) * 0.012);
+      ctx.fillStyle = `rgba(255, 213, 120, ${glow})`;
+      ctx.fillRect(0, 0, width, height);
+  }
 
   const shade = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * .15, width / 2, height / 2, Math.max(width, height) * .7);
   shade.addColorStop(0, "rgba(7, 22, 23, 0)");
@@ -908,6 +945,10 @@ function frame(time) {
 
 window.addEventListener("keydown", event => {
     const key = event.key.toLowerCase();
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
+        event.preventDefault();
+    }
+    if (event.repeat && key === "e") return;
     if (key === "e" && playing) {
         for (const item of discoveries) {
             if (item.found) continue;
@@ -933,9 +974,9 @@ window.addEventListener("keydown", event => {
         );
 
         if (distance < 48 && !treasureChest.opened) {
-            treasureChest.opened = "true";
+            treasureChest.opened = true;
             treasureChest.massageShown = true;
-            hint.textContent = "Damn! You found an ancient treasure";
+            hint.textContent = "A little treasure! The world feels brighter";
 
             for (let i = 0; i < 12; i++) {
                 chestSparkles.push({
