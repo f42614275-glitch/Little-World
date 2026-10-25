@@ -427,6 +427,28 @@ function update(dt) {
             if (found === stars.length) {
                 playing = false;
                 finishScreen.classList.remove("hidden");
+                finishScreen.classList.add("celebration");
+
+                let endingMessage = finishScreen.querySelector("#ending-message");
+
+                if (!endingMessage) {
+                    endingMessage = document.createElement("p");
+                    endingMessage.id = "ending-message";
+                    finishScreen.prepend(endingMessage);
+                }
+
+                endingMessage.textContent = "You found every star. The planet shines again.";
+
+                let endingStats = finishScreen.querySelector("#ending-stats");
+
+                if (!endingStats) {
+                    endingStats = document.createElement("p");
+                    endingStats.id = "ending-stats";
+                    endingMessage.after(endingStats);
+                }
+                
+                endingStats.textContent = `Adventure Complete · ${found}/${stars.length} stars collected`;
+
                 music.pause();
                 endingMusic.currentTime = 0;
                 endingMusic.play()
@@ -437,7 +459,6 @@ function update(dt) {
                         console.error("Could not play ending music", error);
                     });
             }
-
         }
     }
 

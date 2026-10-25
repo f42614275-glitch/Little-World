@@ -244,6 +244,55 @@ button span { font-size: 17px; }
 
 .hidden { display: none; }
 
+#finish.celebration {
+    overflow: hidden;
+    isolation: isolate;
+}
+
+#finish.celebration::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+        ellipse at center, #ffdc8752, #579b781f 50%, transparent 78%
+    );
+    animation: planetGlow 3s ease-in-out infinite alternate;
+}
+
+#ending-message {
+    color: #ffe9a8;
+    font-size: 1.35rem;
+    font-weight: 600;
+    animation: endingRise 1s ease-out both;
+}
+
+#ending-stats {
+    color: #e1edcf;
+    animation: endingRise 1.4s ease-out both;
+}
+
+@keyframes planetGlow {
+    from {
+        opacity: 0.45;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes endingRise {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @media (max-width: 650px) {
     .hud { padding: 18px; }
     .objective { display: none; }
