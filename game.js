@@ -54,6 +54,7 @@ let stars = [];
 let starBursts = [];
 let flowers = [];
 let stones = [];
+let fireflies = [];
 let pond = {
     x: 32 * TILE,
     y: 15 * TILE,
@@ -104,6 +105,7 @@ function buildWorld() {
     world = [];
     flowers = [];
     stones = [];
+    fireflies = [];
 
     for (let y = 0; y < WORLD_H; y++) {
         const row = [];
@@ -163,6 +165,17 @@ function buildWorld() {
             size: particleRandom() < 0.7 ? 2 : 3,
             leaf: particleRandom() < 0.4
         });
+    }
+
+    const fireflyRandom = randomFrom(82461);
+
+    for (let i = 0; i < 12; i++) {
+        fireflies.push({
+            x: pond.x + fireflyRandom() * pond.width,
+            y: pond.y + fireflyRandom() * pond.height,
+            phase: fireflyRandom() * Math.PI * 2,
+            speed: 8 + fireflyRandom() * 12
+        })
     }
 
     // discoveries
@@ -713,6 +726,16 @@ function render(time) {
 
         const sway = Math.sin(time * 0.002 + flower.x) * 1.5;
 
+        if (found >= 4) {
+            const flowerGlow = 0.15 + (Math.sin(time * 0.004 + flower.x * 0.02) + 1) * 0.15;
+            ctx.globalAlpha = flowerGlow;
+            ctx.fillStyle = "#ffe99a";
+            ctx.beginPath();
+            ctx.arc(flower.x, flower.y, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
         ctx.fillStyle = "#416c4c";
         ctx.fillRect(flower.x + 2, flower.y + 3, 2, 6);
 
@@ -723,6 +746,30 @@ function render(time) {
         ctx.fillStyle = "#f4e7b0";
         ctx.fillRect(flower.x + 2 + sway, flower.y + 2, 2, 2);
     }
+
+    for (const fly of fireflies) {
+        const driftX = Math.sin(time * 0.001 + fly.phase) * 8;
+        const driftY = Math.cos(time * 0.0015 + fly.phase) * 6;
+        const x = fly.x + driftX;
+        const y = fly.y + driftY;
+
+        const glow = found >= 0
+        ? 0.4 + (Math.sin(time * 0.005 + fly.phase) + 1) * 0.3
+        : 0.12;
+
+        ctx.globalAlpha = glow;
+        ctx.fillStyle = "#ffe99a";
+        ctx.beginPath();
+        ctx.arc(x, y, found >= 0 ? 3 : 2, 0, Math.PI * 2);
+        if (found >= 0) {
+            ctx.globalAlpha = glow * 0.25;
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    ctx.globalAlpha = 1;
 
     for (const particle of natureParticles) {
         const driftX = Math.sin(time * 0.0005 + particle.phase) * 5;
@@ -832,6 +879,12 @@ function render(time) {
         ctx.fillStyle = "#ffe5a1";
         ctx.fillRect(x - 5, y - 5, 2, 2);
         ctx.fillRect(x + 4, y - 5, 2, 2);
+    }
+
+    if (found >= 4) {
+        const glow = 0.04 + (Math.sin(time * 0.0015) + 1) * 0.025;
+        ctx.fillStyle = `rgba(255, 213, 120, ${glow})`;
+        ctx.fillRect(camera.x, camera.y, canvas.width, canvas.height);
     }
     
       drawPlayer(time);
