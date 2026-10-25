@@ -1,0 +1,1 @@
+this is a star collecting game where you collect 5 stars while running away from monsters and help the planet get its glow again while collecting stars you can find discoveries and treasure chests too.
